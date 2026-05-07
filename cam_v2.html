@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAM Builder Pro</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f172a;--card:#1e293b;--card2:#263348;--border:#334155;
+  --accent:#60a5fa;--accent2:#3b82f6;--text:#e2e8f0;--muted:#94a3b8;
+  --green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--purple:#a78bfa;
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;min-height:100vh}
+h1,h2,h3,h4{font-weight:600}
+a{color:var(--accent)}
+
+/* ── HEADER ── */
+.header{background:linear-gradient(135deg,#1e3a5f,#1e293b);padding:16px 24px;display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.header-logo{width:36px;height:36px;background:var(--accent2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff}
+.header h1{font-size:20px;color:#fff}
+.header-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.header-right{margin-left:auto;display:flex;gap:10px;align-items:center}
+.health-dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.health-dot.up{background:var(--green)}
+.health-dot.down{background:var(--red)}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:2px;padding:12px 24px 0;background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto}
+.tab{padding:10px 18px;border-radius:8px 8px 0 0;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;white-space:nowrap;transition:all .2s;border:1px solid transparent;border-bottom:none}
+.tab:hover{color:var(--text);background:var(--card2)}
+.tab.active{color:var(--accent);background:var(--bg);border-color:var(--border)}
+
+/* ── MAIN ── */
+.main{padding:24px;max-width:1400px;margin:0 auto}
+.section{display:none}
+.section.active{display:block}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+.card-title{font-size:15px;font-weight:600;color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-title .badge{font-size:11px;background:var(--accent2);color:#fff;padding:2px 8px;border-radius:20px;font-weight:500}
+
+/* ── UPLOAD ── */
+.drop-zone{border:2px dashed var(--border);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .3s;background:var(--card2)}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:#1e3a5f}
+.drop-zone-icon{font-size:40px;margin-bottom:12px}
+.drop-zone p{color:var(--muted);margin-top:6px;font-size:13px}
+.file-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.chip{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:12px}
+.chip .chip-year{background:var(--accent2);color:#fff;border-radius:10px;padding:1px 7px;font-size:11px}
+.chip .chip-remove{cursor:pointer;color:var(--muted);font-size:16px;line-height:1}
+.chip .chip-remove:hover{color:var(--red)}
+.chip.loading{opacity:.7}
+.chip .spinner{width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── BUTTONS ── */
+.btn{padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent2);color:#fff}
+.btn-primary:hover{background:#2563eb}
+.btn-success{background:#16a34a;color:#fff}
+.btn-success:hover{background:#15803d}
+.btn-outline{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.btn-outline:hover{background:var(--accent2);color:#fff}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{background:#dc2626}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── FORMS ── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group label{font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select,.form-group textarea{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;transition:border .2s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent)}
+.form-group textarea{resize:vertical;min-height:80px}
+.form-group select option{background:var(--card)}
+
+/* ── TABLES ── */
+.table-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--card2);padding:10px 12px;text-align:right;color:var(--muted);font-weight:600;font-size:12px;white-space:nowrap;border-bottom:1px solid var(--border)}
+th:first-child{text-align:left}
+td{padding:8px 12px;border-bottom:1px solid #1e293b;text-align:right;white-space:nowrap}
+td:first-child{text-align:left;color:var(--muted);font-size:12px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(96,165,250,.04)}
+.row-total td{font-weight:700;color:var(--text);background:rgba(96,165,250,.06)}
+.row-section td{background:var(--card2);color:var(--accent);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+td.editable{cursor:text;position:relative}
+td.editable:hover{background:rgba(96,165,250,.1)}
+td.editable input{background:transparent;border:none;outline:none;color:var(--text);text-align:right;width:100%;font-size:13px}
+.num-pos{color:var(--green)}
+.num-neg{color:var(--red)}
+.conf-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-left:4px;vertical-align:middle}
+.conf-high{background:var(--green)}
+.conf-med{background:var(--yellow)}
+.conf-low{background:var(--red)}
+
+/* ── RATIOS ── */
+.ratio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.ratio-card{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px}
+.ratio-card .ratio-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.ratio-card .ratio-val{font-size:22px;font-weight:700;color:var(--accent)}
+.ratio-card .ratio-trend{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* ── NARRATIVE ── */
+.narrative-block{background:var(--card2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:16px;margin-bottom:14px;line-height:1.7;color:var(--text)}
+.narrative-block h4{color:var(--accent);margin-bottom:8px;font-size:13px;text-transform:uppercase;letter-spacing:.5px}
+.narrative-block p{font-size:13px;color:#cbd5e1}
+
+/* ── FLAGS ── */
+.flag{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:8px;margin-bottom:8px;font-size:13px}
+.flag.warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:var(--yellow)}
+.flag.error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red)}
+.flag.info{background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.3);color:var(--accent)}
+
+/* ── DIRECTORS TABLE ── */
+.directors-table{width:100%;border-collapse:collapse;margin-top:8px}
+.directors-table th{background:var(--card2);padding:8px 10px;text-align:left;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border)}
+.directors-table td{padding:6px 8px;border-bottom:1px solid var(--border)}
+.directors-table input{background:transparent;border:none;outline:none;color:var(--text);font-size:13px;width:100%}
+.directors-table input:focus{border-bottom:1px solid var(--accent)}
+
+/* ── TREND SUMMARY ── */
+.trend-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.trend-item:last-child{border-bottom:none}
+.trend-arrow{font-size:18px}
+.trend-up{color:var(--green)}
+.trend-down{color:var(--red)}
+.trend-flat{color:var(--muted)}
+
+/* ── MISC ── */
+.alert{padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px}
+.alert-info{background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.3);color:var(--accent)}
+.alert-success{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green)}
+.alert-error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red)}
+.flex{display:flex;align-items:center;gap:10px}
+.flex-between{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mt-8{margin-top:8px}
+.mt-16{margin-top:16px}
+.mb-16{margin-bottom:16px}
+.text-muted{color:var(--muted)}
+.text-sm{font-size:12px}
+.sub-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.sub-tab{padding:6px 14px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:500;color:var(--muted);border:1px solid var(--border);transition:all .2s}
+.sub-tab:hover{color:var(--text)}
+.sub-tab.active{background:var(--accent2);color:#fff;border-color:var(--accent2)}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px}
+.progress-fill{height:100%;background:var(--accent2);border-radius:2px;transition:width .5s}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">C</div>
+  <div>
+    <h1>CAM Builder Pro</h1>
+    <div class="header-sub">Credit Appraisal Memorandum Generator</div>
+  </div>
+  <div class="header-right">
+    <div class="flex" style="gap:6px" onclick="promptServerUrl()" title="Click to set Railway URL" style="cursor:pointer">
+      <div class="health-dot" id="healthDot"></div>
+      <span class="text-sm text-muted" id="healthText">Checking server...</span>
+    </div>
+    <button class="btn btn-success" onclick="generateExcel()" id="exportBtn">
+      ⬇ Generate CAM Excel
+    </button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('upload')">📁 Upload Files</div>
+  <div class="tab" onclick="switchTab('profile')">🏢 Company Profile</div>
+  <div class="tab" onclick="switchTab('facility')">💰 Proposed Facility</div>
+  <div class="tab" onclick="switchTab('financials')">📊 Financial Analysis</div>
+  <div class="tab" onclick="switchTab('ratios')">📐 Ratios</div>
+  <div class="tab" onclick="switchTab('narrative')">📝 CAM Narrative</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION: UPLOAD
+═══════════════════════════════════════════════════════════════ -->
+<div class="section active" id="sec-upload">
+  <div class="card">
+    <div class="card-title">📁 Upload Financial Documents <span class="badge">PDF / Excel / Images</span></div>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="drop-zone-icon">📂</div>
+      <h3 style="color:var(--text)">Drop files here or click to browse</h3>
+      <p>Supports PDF, Excel, and Images (.jpg, .png) files — Annual Reports, P&L, Balance Sheets</p>
+      <p style="margin-top:8px;color:var(--accent)">No limit on number of files</p>
+    </div>
+    <input type="file" id="fileInput" multiple accept=".pdf,.xlsx,.xls,.jpg,.jpeg,.png,.bmp,.tiff,.webp,.gif" style="display:none" onchange="handleFiles(this.files)">
+    <div class="file-chips" id="fileChips"></div>
+    <div class="mt-16 flex-between">
+      <div class="text-muted text-sm" id="uploadStatus">No files uploaded yet</div>
+      <div class="flex">
+        <button class="btn btn-outline" onclick="clearFiles()">✕ Clear All</button>
+        <button class="btn btn-primary" id="extractBtn" onclick="extractFinancials()" disabled>
+          ⚡ Extract Financials
+        </button>
+      </div>
+    </div>
+    <div id="extractProgress" style="display:none">
+      <div class="progress-bar mt-8"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="text-sm text-muted mt-8" id="progressText">Extracting...</div>
+    </div>
+  </div>
+
+  <div class="card" id="extractedSummary" style="display:none">
+    <div class="card-title">✅ Extraction Summary</div>
+    <div id="extractedContent"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ℹ️ How It Works</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px">
+      <div style="padding:14px;background:var(--card2);border-radius:8px">
+        <div style="font-size:24px;margin-bottom:8px">1️⃣</div>
+        <div style="font-weight:600;margin-bottom:4px">Upload PDFs</div>
+        <div class="text-muted text-sm">Upload annual reports or standalone P&L / Balance Sheet PDFs</div>
+      </div>
+      <div style="padding:14px;background:var(--card2);border-radius:8px">
+        <div style="font-size:24px;margin-bottom:8px">2️⃣</div>
+        <div style="font-weight:600;margin-bottom:4px">Extract Data</div>
+        <div class="text-muted text-sm">Railway server extracts PDFs &amp; images via PyMuPDF. Excel files parsed locally in-browser — no API key needed.</div>
+      </div>
+      <div style="padding:14px;background:var(--card2);border-radius:8px">
+        <div style="font-size:24px;margin-bottom:8px">3️⃣</div>
+        <div style="font-weight:600;margin-bottom:4px">Review & Edit</div>
+        <div class="text-muted text-sm">All cells are editable. Correct any extraction errors before generating</div>
+      </div>
+      <div style="padding:14px;background:var(--card2);border-radius:8px">
+        <div style="font-size:24px;margin-bottom:8px">4️⃣</div>
+        <div style="font-weight:600;margin-bottom:4px">Generate CAM</div>
+        <div class="text-muted text-sm">Export a fully formatted Excel CAM with narrative, ratios, and flags</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION: COMPANY PROFILE
+═══════════════════════════════════════════════════════════════ -->
+<div class="section" id="sec-profile">
+  <div class="card">
+    <div class="card-title">🏢 Section 1 — Company Profile</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Company Name *</label>
+        <input type="text" id="companyName" placeholder="e.g. Acme Industries Pvt Ltd" oninput="onProfileChange()">
+      </div>
+      <div class="form-group">
+        <label>CIN</label>
+        <input type="text" id="cin" placeholder="e.g. U12345MH2010PTC123456">
+      </div>
+      <div class="form-group">
+        <label>Incorporation Date</label>
+        <input type="date" id="incDate">
+      </div>
+      <div class="form-group">
+        <label>Nature of Business</label>
+        <input type="text" id="natureBiz" placeholder="e.g. Manufacturing — Textiles">
+      </div>
+      <div class="form-group">
+        <label>Auditor Name</label>
+        <input type="text" id="auditorName" placeholder="e.g. M/s Sharma & Associates">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Registered Address</label>
+        <textarea id="regAddress" placeholder="Full registered address..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title flex-between">
+      <span>👥 Directors / Partners</span>
+      <button class="btn btn-outline" onclick="addDirectorRow()" style="font-size:12px;padding:5px 12px">+ Add Row</button>
+    </div>
+    <div class="table-wrap">
+      <table class="directors-table">
+        <thead>
+          <tr>
+            <th style="width:30px">#</th>
+            <th>Name</th>
+            <th>DIN / PAN</th>
+            <th>Designation</th>
+            <th>% Shareholding</th>
+            <th style="width:40px"></th>
+          </tr>
+        </thead>
+        <tbody id="directorsBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION: PROPOSED FACILITY
+═══════════════════════════════════════════════════════════════ -->
+<div class="section" id="sec-facility">
+  <div class="card">
+    <div class="card-title">💰 Section 2 — Proposed Facility</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Facility Type *</label>
+        <select id="facilityType">
+          <option value="">Select...</option>
+          <option>Term Loan</option>
+          <option>Cash Credit (CC)</option>
+          <option>Overdraft (OD)</option>
+          <option>Bank Guarantee (BG)</option>
+          <option>Letter of Credit (LC)</option>
+          <option>Working Capital Demand Loan</option>
+          <option>Equipment Finance</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Amount (₹ Lakhs) *</label>
+        <input type="number" id="facilityAmount" placeholder="e.g. 500">
+      </div>
+      <div class="form-group">
+        <label>Tenure (Months)</label>
+        <input type="number" id="facilityTenure" placeholder="e.g. 60" oninput="recalcDSCR()">
+      </div>
+      <div class="form-group">
+        <label>Interest Rate (% p.a.)</label>
+        <input type="number" id="facilityRate" placeholder="e.g. 10.5" step="0.1">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Purpose</label>
+        <textarea id="facilityPurpose" placeholder="Describe the purpose of the facility..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Primary Security</label>
+        <input type="text" id="primarySecurity" placeholder="e.g. Hypothecation of stock & debtors">
+      </div>
+      <div class="form-group">
+        <label>Collateral Security</label>
+        <input type="text" id="collateralSecurity" placeholder="e.g. Mortgage of factory land">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Repayment Schedule</label>
+        <textarea id="repaymentSchedule" placeholder="e.g. 60 equal monthly instalments of ₹X lakhs each..."></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION: FINANCIAL ANALYSIS
+═══════════════════════════════════════════════════════════════ -->
+<div class="section" id="sec-financials">
+  <div class="sub-tabs">
+    <div class="sub-tab active" onclick="switchSubTab('bs')">3A. Balance Sheet</div>
+    <div class="sub-tab" onclick="switchSubTab('pl')">3B. P&L Summary</div>
+    <div class="sub-tab" onclick="switchSubTab('vertical')">3D. Vertical Analysis</div>
+    <div class="sub-tab" onclick="switchSubTab('trend')">3E. Trend Analysis</div>
+  </div>
+
+  <div id="sub-bs">
+    <div class="card">
+      <div class="card-title flex-between">
+        <span>📋 3A. Balance Sheet Summary <span class="badge">₹ Lakhs</span></span>
+        <span class="text-sm text-muted">Click any cell to edit</span>
+      </div>
+      <div class="table-wrap" id="bsTable"></div>
+    </div>
+  </div>
+
+  <div id="sub-pl" style="display:none">
+    <div class="card">
+      <div class="card-title flex-between">
+        <span>📈 3B. P&L Summary <span class="badge">₹ Lakhs</span></span>
+        <span class="text-sm text-muted">Click any cell to edit</span>
+      </div>
+      <div class="table-wrap" id="plTable"></div>
+    </div>
+  </div>
+
+  <div id="sub-vertical" style="display:none">
+    <div class="card">
+      <div class="card-title">📊 3D. Vertical Analysis (% of Total Revenue)</div>
+      <div class="table-wrap" id="verticalTable"></div>
+    </div>
+  </div>
+
+  <div id="sub-trend" style="display:none">
+    <div class="card">
+      <div class="card-title">📉 3E. Trend Analysis</div>
+      <div id="trendContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION: RATIOS
+═══════════════════════════════════════════════════════════════ -->
+<div class="section" id="sec-ratios">
+  <div class="card">
+    <div class="card-title">📐 3C. Key Financial Ratios</div>
+    <div class="table-wrap" id="ratiosTable"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🚩 Data Quality Flags</div>
+    <div id="flagsContent"><div class="text-muted text-sm">No flags yet — extract financials first.</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION: CAM NARRATIVE
+═══════════════════════════════════════════════════════════════ -->
+<div class="section" id="sec-narrative">
+  <div class="flex-between mb-16">
+    <div class="card-title" style="margin:0">📝 Section 4 — CAM Narrative</div>
+    <button class="btn btn-outline" onclick="regenerateNarrative()">🔄 Regenerate</button>
+  </div>
+  <div id="narrativeContent">
+    <div class="alert alert-info">Extract financials first to auto-generate the narrative.</div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let uploadedFiles = [];
+let extractedData = [];
+let mergedData = null;
+let directorRows = 0;
+
+// ── Railway server URL ─────────────────────────────────────────
+// After deploying to Railway, paste your URL here:
+let SERVER = localStorage.getItem('cam_server_url') || '';
+
+// ═══════════════════════════════════════════════════════════════
+// SERVER HEALTH CHECK
+// ═══════════════════════════════════════════════════════════════
+async function checkHealth() {
+  const dot = document.getElementById('healthDot');
+  const txt = document.getElementById('healthText');
+  if (!SERVER) {
+    dot.className = 'health-dot down';
+    txt.textContent = 'No server URL — click to set';
+    txt.style.cursor = 'pointer';
+    txt.onclick = promptServerUrl;
+    return false;
+  }
+  try {
+    const r = await fetch(SERVER + '/health', { signal: AbortSignal.timeout(4000) });
+    if (r.ok) {
+      dot.className = 'health-dot up';
+      txt.textContent = 'Server online ✓';
+      txt.style.cursor = 'pointer';
+      txt.onclick = promptServerUrl;
+      return true;
+    }
+  } catch {}
+  dot.className = 'health-dot down';
+  txt.textContent = 'Server offline — click to update URL';
+  txt.style.cursor = 'pointer';
+  txt.onclick = promptServerUrl;
+  return false;
+}
+
+function promptServerUrl() {
+  const url = prompt('Enter your Railway server URL:\n(e.g. https://cam-server-production.up.railway.app)', SERVER);
+  if (url !== null) {
+    SERVER = url.trim().replace(/\/$/, '');
+    localStorage.setItem('cam_server_url', SERVER);
+    checkHealth();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', checkHealth);
+
+// ═══════════════════════════════════════════════════════════════
+// TAB NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const names = ['upload','profile','facility','financials','ratios','narrative'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+}
+
+function switchSubTab(name) {
+  document.querySelectorAll('.sub-tab').forEach((t,i) => {
+    const names = ['bs','pl','vertical','trend'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  ['bs','pl','vertical','trend'].forEach(n => {
+    document.getElementById('sub-' + n).style.display = n === name ? '' : 'none';
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FILE UPLOAD
+// ═══════════════════════════════════════════════════════════════
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+});
+
+function handleFiles(files) {
+  for (const f of files) {
+    if (!uploadedFiles.find(u => u.name === f.name && u.size === f.size)) {
+      uploadedFiles.push(f);
+    }
+  }
+  renderChips();
+}
+
+function renderChips() {
+  const container = document.getElementById('fileChips');
+  container.innerHTML = '';
+  uploadedFiles.forEach((f, i) => {
+    const year = guessYear(f.name);
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.id = 'chip-' + i;
+    chip.innerHTML = `
+      <span>📄 ${f.name}</span>
+      ${year ? `<span class="chip-year">${year}</span>` : ''}
+      <span class="chip-remove" onclick="removeFile(${i})">×</span>
+    `;
+    container.appendChild(chip);
+  });
+  const n = uploadedFiles.length;
+  document.getElementById('uploadStatus').textContent = n ? `${n} file(s) ready` : 'No files uploaded yet';
+  document.getElementById('extractBtn').disabled = n === 0;
+}
+
+function guessYear(name) {
+  const m = name.match(/20\d{2}/);
+  return m ? m[0] : null;
+}
+
+function removeFile(i) {
+  uploadedFiles.splice(i, 1);
+  renderChips();
+}
+
+function clearFiles() {
+  uploadedFiles = [];
+  renderChips();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXTRACT FINANCIALS
+// ═══════════════════════════════════════════════════════════════
+async function extractFinancials() {
+  if (!uploadedFiles.length) return;
+  if (!SERVER) { promptServerUrl(); return; }
+  const btn = document.getElementById('extractBtn');
+  btn.disabled = true; btn.textContent = '⏳ Extracting...';
+  document.getElementById('extractProgress').style.display = '';
+  extractedData = [];
+  const total = uploadedFiles.length;
+  let done = 0;
+
+  for (let i = 0; i < uploadedFiles.length; i++) {
+    const f = uploadedFiles[i];
+    const chip = document.getElementById('chip-' + i);
+    if (chip) { chip.classList.add('loading'); chip.querySelector('.chip-remove').insertAdjacentHTML('beforebegin','<span class="spinner"></span>'); }
+
+    try {
+      let result = null;
+      const isExcel = /\.(xlsx|xls)$/i.test(f.name);
+      if (isExcel) {
+        result = await extractViaSheetJS(f);
+      } else {
+        result = await extractViaServer(f);
+      }
+      if (result) {
+        if (Array.isArray(result)) extractedData.push(...result);
+        else extractedData.push(result);
+      }
+    } catch(e) {
+      console.error('Error extracting', f.name, e);
+      const msg = e.message || String(e);
+      document.getElementById('progressText').innerHTML = '<span style="color:var(--red)">\u274C Error on ' + f.name + ': ' + msg + '</span>';
+      if (msg.includes('Failed to fetch') || msg.includes('offline') || msg.includes('NetworkError')) {
+        document.getElementById('progressText').innerHTML += ' &mdash; <button class="btn btn-outline" style="font-size:12px;padding:3px 10px" onclick="promptServerUrl()">Update Server URL</button>';
+      }
+    }
+
+    done++;
+    document.getElementById('progressFill').style.width = (done/total*100) + '%';
+    document.getElementById('progressText').textContent = 'Processed ' + done + '/' + total + ' files';
+    if (chip) { chip.classList.remove('loading'); const sp = chip.querySelector('.spinner'); if (sp) sp.remove(); }
+  }
+
+  btn.disabled = false; btn.textContent = '⚡ Extract Financials';
+  if (extractedData.length) {
+    mergedData = mergeExtractedData(extractedData);
+    renderAll(); showExtractionSummary();
+    document.getElementById('extractProgress').style.display = 'none';
+  } else {
+    document.getElementById('progressText').textContent = 'No data extracted. Check your API key and try again.';
+  }
+}
+
+
+async function extractViaServer(file) {
+  const fd = new FormData();
+  fd.append('files', file);
+  const r = await fetch(SERVER + '/extract-financials', {
+    method: 'POST',
+    body: fd,
+    signal: AbortSignal.timeout(60000)
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error((err.error) || 'Server error ' + r.status);
+  }
+  const json = await r.json();
+  if (json.results) return json.results;
+  if (Array.isArray(json)) return json;
+  return [json];
+}
+
+
+async function extractViaSheetJS(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const result = parseExcelWorkbook(wb, file.name);
+        resolve([result]);
+      } catch (err) { reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function parseExcelWorkbook(wb, filename) {
+  const year = parseInt(guessYear(filename)) || new Date().getFullYear();
+  const result = { year, company: filename.replace(/\.[^.]+$/, ''), pl: {}, bs_assets: {}, bs_liabilities: {} };
+  const plKeys = ['revenue_from_operations','other_income','cogs','employee_expenses','other_expenses','finance_cost','depreciation','tax_expense','pat'];
+  const assetKeys = ['tangible_assets','cwip','intangible_assets','inventories','debtors','cash','short_term_loans'];
+  const liabKeys = ['equity_share_capital','reserves_surplus','long_term_borrowings','short_term_borrowings','trade_payables','other_current_liabilities'];
+  const ALIASES = {
+    'revenue_from_operations':['revenue','turnover','sales','net revenue','income from operations'],
+    'other_income':['other income'],
+    'cogs':['cost of goods','cost of material','cost of sales','purchases','material cost','cogs'],
+    'employee_expenses':['employee','staff','salaries','wages'],
+    'other_expenses':['other expense','selling','admin','overheads'],
+    'finance_cost':['finance cost','interest expense','interest paid','bank charges'],
+    'depreciation':['depreciation','amortis'],
+    'tax_expense':['tax expense','income tax','provision for tax'],
+    'pat':['profit after tax','net profit','pat','profit for the year'],
+    'tangible_assets':['tangible','fixed assets','property plant','ppe'],
+    'cwip':['cwip','capital work'],
+    'intangible_assets':['intangible'],
+    'inventories':['inventor','stock'],
+    'debtors':['debtor','receivable'],
+    'cash':['cash','bank balance'],
+    'short_term_loans':['short term loan','other current asset','loans and advances'],
+    'equity_share_capital':['share capital','equity capital','paid up'],
+    'reserves_surplus':['reserve','surplus','retained'],
+    'long_term_borrowings':['long term borrow','term loan'],
+    'short_term_borrowings':['short term borrow','working capital loan','cash credit','overdraft'],
+    'trade_payables':['trade payable','creditor','accounts payable'],
+    'other_current_liabilities':['other current liab','other liab']
+  };
+  function flexMatch(key, lbl) {
+    const aliases = ALIASES[key] || [key.replace(/_/g,' ')];
+    return aliases.some(a => lbl.includes(a));
+  }
+  for (const sn of wb.SheetNames) {
+    const ws = wb.Sheets[sn];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    for (const row of rows) {
+      const label = String(row[0] || '').toLowerCase().replace(/[^a-z0-9 ]/g, '');
+      const nums = row.slice(1).map(v => parseFloat(String(v).replace(/,/g,'')) || 0).filter(v => v !== 0);
+      if (!nums.length) continue;
+      for (const k of plKeys) if (flexMatch(k, label)) result.pl[k] = nums;
+      for (const k of assetKeys) if (flexMatch(k, label)) result.bs_assets[k] = nums;
+      for (const k of liabKeys) if (flexMatch(k, label)) result.bs_liabilities[k] = nums;
+    }
+  }
+  return result;
+}
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// MERGE MULTI-YEAR DATA
+// ═══════════════════════════════════════════════════════════════
+function mergeExtractedData(dataArr) {
+  console.log('mergeExtractedData input:', dataArr.length, 'items');
+  // Filter valid entries
+  const valid = dataArr.filter(function(d) {
+    return d && !d.error && (d.pl || d.bs_assets || d.bs_liabilities);
+  });
+  console.log('Valid entries:', valid.length);
+  if (!valid.length) return null;
+
+  // Sort by year
+  const sorted = valid.slice().sort(function(a, b) { return (a.year||0) - (b.year||0); });
+  const years = sorted.map(function(d) { return d.year || '?'; });
+  const company = (sorted[sorted.length-1] || {}).company || '';
+  const n = sorted.length;
+
+  function getVal(obj, key, idx) {
+    if (!obj || !obj[key]) return 0;
+    const arr = obj[key];
+    if (!Array.isArray(arr) || !arr.length) return 0;
+    // If single file with multiple year columns, reverse (server returns newest first)
+    if (n === 1) {
+      const rev = arr.slice().reverse();
+      return rev[idx] || 0;
+    }
+    // Multiple files: each contributes its first value
+    return arr[0] || 0;
+  }
+
+  const plKeys = ['revenue_from_operations','other_income','cogs','employee_expenses','other_expenses','finance_cost','depreciation','tax_expense','pat'];
+  const assetKeys = ['tangible_assets','cwip','intangible_assets','inventories','debtors','cash','short_term_loans'];
+  const liabKeys = ['equity_share_capital','reserves_surplus','long_term_borrowings','short_term_borrowings','trade_payables','other_current_liabilities'];
+
+  const pl = {}, bs_assets = {}, bs_liabilities = {};
+  plKeys.forEach(function(k) { pl[k] = sorted.map(function(d,i) { return getVal(d.pl, k, i); }); });
+  assetKeys.forEach(function(k) { bs_assets[k] = sorted.map(function(d,i) { return getVal(d.bs_assets, k, i); }); });
+  liabKeys.forEach(function(k) { bs_liabilities[k] = sorted.map(function(d,i) { return getVal(d.bs_liabilities, k, i); }); });
+
+  console.log('Merged years:', years, 'company:', company);
+  return { years: years, company: company, pl: pl, bs_assets: bs_assets, bs_liabilities: bs_liabilities, n: n };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COMPUTED FINANCIALS
+// ═══════════════════════════════════════════════════════════════
+function computeFinancials(d) {
+  const { pl, bs_assets, bs_liabilities, n } = d;
+  const arr = i => Array.from({ length: n }, (_, j) => i[j] || 0);
+
+  const rev = arr(pl.revenue_from_operations);
+  const otherInc = arr(pl.other_income);
+  const cogs = arr(pl.cogs);
+  const emp = arr(pl.employee_expenses);
+  const otherExp = arr(pl.other_expenses);
+  const finCost = arr(pl.finance_cost);
+  const dep = arr(pl.depreciation);
+  const tax = arr(pl.tax_expense);
+  const pat = arr(pl.pat);
+
+  const totalInc = rev.map((v, i) => v + otherInc[i]);
+  const totalExp = rev.map((v, i) => cogs[i] + emp[i] + otherExp[i]);
+  const ebitda = rev.map((v, i) => v - cogs[i] - emp[i] - otherExp[i]);
+  const ebit = ebitda.map((v, i) => v - dep[i]);
+  const pbt = ebit.map((v, i) => v - finCost[i]);
+
+  const ebitdaPct = rev.map((v, i) => v ? (ebitda[i] / v * 100) : 0);
+  const pbtPct = rev.map((v, i) => v ? (pbt[i] / v * 100) : 0);
+  const patPct = rev.map((v, i) => v ? (pat[i] / v * 100) : 0);
+
+  const revGrowth = rev.map((v, i) => i === 0 ? null : (rev[i - 1] ? (v - rev[i - 1]) / rev[i - 1] * 100 : null));
+  const patGrowth = pat.map((v, i) => i === 0 ? null : (pat[i - 1] ? (v - pat[i - 1]) / pat[i - 1] * 100 : null));
+
+  // BS
+  const sc = arr(bs_liabilities.equity_share_capital);
+  const res = arr(bs_liabilities.reserves_surplus);
+  const ltb = arr(bs_liabilities.long_term_borrowings);
+  const stb = arr(bs_liabilities.short_term_borrowings);
+  const tp = arr(bs_liabilities.trade_payables);
+  const ocl = arr(bs_liabilities.other_current_liabilities);
+
+  const netWorth = sc.map((v, i) => v + res[i]);
+  const totalDebt = ltb.map((v, i) => v + stb[i]);
+  const totalLiab = netWorth.map((v, i) => v + totalDebt[i] + tp[i] + ocl[i]);
+
+  const ta = arr(bs_assets.tangible_assets);
+  const cwip = arr(bs_assets.cwip);
+  const ia = arr(bs_assets.intangible_assets);
+  const inv = arr(bs_assets.inventories);
+  const deb = arr(bs_assets.debtors);
+  const cash = arr(bs_assets.cash);
+  const stl = arr(bs_assets.short_term_loans);
+
+  const totalCA = inv.map((v, i) => v + deb[i] + cash[i] + stl[i]);
+  const totalAssets = ta.map((v, i) => v + cwip[i] + ia[i] + totalCA[i]);
+
+  // Ratios
+  const currentLiab = stb.map((v, i) => v + tp[i] + ocl[i]);
+  const currentRatio = totalCA.map((v, i) => currentLiab[i] ? v / currentLiab[i] : 0);
+  const quickRatio = totalCA.map((v, i) => currentLiab[i] ? (v - inv[i]) / currentLiab[i] : 0);
+  const de = totalDebt.map((v, i) => netWorth[i] ? v / netWorth[i] : 0);
+  const ic = ebit.map((v, i) => finCost[i] ? v / finCost[i] : 0);
+
+  const tenure = parseFloat(document.getElementById('facilityTenure')?.value) || 60;
+  const facilityAmt = parseFloat(document.getElementById('facilityAmount')?.value) || 0;
+  const annualPrincipal = facilityAmt / (tenure / 12);
+  const dscr = pat.map((v, i) => {
+    const denom = annualPrincipal + finCost[i];
+    return denom ? (v + dep[i] + finCost[i]) / denom : 0;
+  });
+
+  const grossMargin = rev.map((v, i) => v ? (v - cogs[i]) / v * 100 : 0);
+  const assetTurnover = rev.map((v, i) => totalAssets[i] ? v / totalAssets[i] : 0);
+  const invDays = inv.map((v, i) => cogs[i] ? v / cogs[i] * 365 : 0);
+  const debDays = deb.map((v, i) => rev[i] ? v / rev[i] * 365 : 0);
+  const credDays = tp.map((v, i) => cogs[i] ? v / cogs[i] * 365 : 0);
+
+  return {
+    rev, otherInc, cogs, emp, otherExp, finCost, dep, tax, pat,
+    totalInc, totalExp, ebitda, ebit, pbt,
+    ebitdaPct, pbtPct, patPct, revGrowth, patGrowth,
+    sc, res, ltb, stb, tp, ocl, netWorth, totalDebt, totalLiab,
+    ta, cwip, ia, inv, deb, cash, stl, totalCA, totalAssets,
+    currentRatio, quickRatio, de, ic, dscr,
+    grossMargin, assetTurnover, invDays, debDays, credDays,
+    ebitdaPctArr: ebitdaPct, patPctArr: patPct
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NUMBER FORMATTING
+// ═══════════════════════════════════════════════════════════════
+function fmtIN(n, decimals = 2) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  const abs = Math.abs(n);
+  let s;
+  if (abs >= 10000) {
+    s = (abs / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+    s += ' Cr';
+  } else {
+    s = abs.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  }
+  return n < 0 ? '(' + s + ')' : s;
+}
+
+function fmtPct(n, decimals = 1) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return (n >= 0 ? '+' : '') + n.toFixed(decimals) + '%';
+}
+
+function fmtRatio(n, decimals = 2) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return n.toFixed(decimals) + 'x';
+}
+
+function numClass(n) {
+  if (n === null || n === undefined || isNaN(n)) return '';
+  return n >= 0 ? 'num-pos' : 'num-neg';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EDITABLE CELL
+// ═══════════════════════════════════════════════════════════════
+function editableCell(val, dataKey, yearIdx, section) {
+  const display = fmtIN(val);
+  return `<td class="editable" data-key="${dataKey}" data-yi="${yearIdx}" data-sec="${section}" 
+    onclick="startEdit(this)" title="Click to edit">
+    <span>${display}</span>
+    <span class="conf-dot conf-${val ? 'high' : 'low'}"></span>
+  </td>`;
+}
+
+function startEdit(td) {
+  if (td.querySelector('input')) return;
+  const span = td.querySelector('span');
+  const cur = parseFloat(String(span.textContent).replace(/[^0-9.\-]/g, '')) || 0;
+  td.innerHTML = `<input type="number" value="${cur}" step="0.01" 
+    onblur="commitEdit(this)" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape')cancelEdit(this)">`;
+  td.querySelector('input').focus();
+  td.querySelector('input').select();
+}
+
+function commitEdit(input) {
+  const td = input.closest('td');
+  const val = parseFloat(input.value) || 0;
+  const key = td.dataset.key;
+  const yi = parseInt(td.dataset.yi);
+  const sec = td.dataset.sec;
+
+  if (mergedData) {
+    if (sec === 'pl') mergedData.pl[key][yi] = val;
+    else if (sec === 'bs_assets') mergedData.bs_assets[key][yi] = val;
+    else if (sec === 'bs_liabilities') mergedData.bs_liabilities[key][yi] = val;
+    renderAll();
+  }
+}
+
+function cancelEdit(input) {
+  const td = input.closest('td');
+  const key = td.dataset.key;
+  const yi = parseInt(td.dataset.yi);
+  const sec = td.dataset.sec;
+  let val = 0;
+  if (mergedData) {
+    if (sec === 'pl') val = mergedData.pl[key]?.[yi] || 0;
+    else if (sec === 'bs_assets') val = mergedData.bs_assets[key]?.[yi] || 0;
+    else if (sec === 'bs_liabilities') val = mergedData.bs_liabilities[key]?.[yi] || 0;
+  }
+  td.innerHTML = `<span>${fmtIN(val)}</span><span class="conf-dot conf-high"></span>`;
+}
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// RENDER ALL
+// ═══════════════════════════════════════════════════════════════
+function renderAll() {
+  if (!mergedData) return;
+  const c = computeFinancials(mergedData);
+  renderBS(c);
+  renderPL(c);
+  renderRatios(c);
+  renderVertical(c);
+  renderTrend(c);
+  renderNarrative(c);
+  renderFlags(c);
+  // Auto-fill company name
+  if (mergedData.company && !document.getElementById('companyName').value) {
+    document.getElementById('companyName').value = mergedData.company;
+  }
+}
+
+function recalcDSCR() {
+  if (mergedData) renderAll();
+}
+
+function onProfileChange() {}
+
+// ═══════════════════════════════════════════════════════════════
+// HEADER ROW HELPER
+// ═══════════════════════════════════════════════════════════════
+function headerRow(years) {
+  return `<tr><th>Particulars</th>${years.map(y => `<th>FY ${y}</th>`).join('')}</tr>`;
+}
+
+function sectionRow(label, cols) {
+  return `<tr class="row-section"><td colspan="${cols + 1}">${label}</td></tr>`;
+}
+
+function totalRow(label, vals, fmt = fmtIN) {
+  return `<tr class="row-total"><td>${label}</td>${vals.map(v => `<td class="${numClass(v)}">${fmt(v)}</td>`).join('')}</tr>`;
+}
+
+function dataRow(label, vals, fmt = fmtIN, key = '', sec = '') {
+  if (key && sec) {
+    return `<tr><td>${label}</td>${vals.map((v, i) => editableCell(v, key, i, sec)).join('')}</tr>`;
+  }
+  return `<tr><td>${label}</td>${vals.map(v => `<td class="${numClass(v)}">${fmt(v)}</td>`).join('')}</tr>`;
+}
+
+function pctRow(label, vals) {
+  return `<tr><td>${label}</td>${vals.map(v => `<td class="${numClass(v)}">${fmtPct(v)}</td>`).join('')}</tr>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BALANCE SHEET TABLE
+// ═══════════════════════════════════════════════════════════════
+function renderBS(c) {
+  const { years } = mergedData;
+  const n = years.length;
+  let html = `<table><thead>${headerRow(years)}</thead><tbody>`;
+
+  html += sectionRow('EQUITY & LIABILITIES', n);
+  html += dataRow('Share Capital', c.sc, fmtIN, 'equity_share_capital', 'bs_liabilities');
+  html += dataRow('Reserves & Surplus', c.res, fmtIN, 'reserves_surplus', 'bs_liabilities');
+  html += totalRow('Total Net Worth', c.netWorth);
+  html += dataRow('Long Term Borrowings', c.ltb, fmtIN, 'long_term_borrowings', 'bs_liabilities');
+  html += dataRow('Short Term Borrowings', c.stb, fmtIN, 'short_term_borrowings', 'bs_liabilities');
+  html += totalRow('Total Debt', c.totalDebt);
+  html += dataRow('Trade Payables', c.tp, fmtIN, 'trade_payables', 'bs_liabilities');
+  html += dataRow('Other Current Liabilities', c.ocl, fmtIN, 'other_current_liabilities', 'bs_liabilities');
+  html += totalRow('Total Liabilities', c.totalLiab);
+
+  html += sectionRow('ASSETS', n);
+  html += dataRow('Tangible Fixed Assets', c.ta, fmtIN, 'tangible_assets', 'bs_assets');
+  html += dataRow('Intangible Assets', c.ia, fmtIN, 'intangible_assets', 'bs_assets');
+  html += dataRow('Capital WIP', c.cwip, fmtIN, 'cwip', 'bs_assets');
+  html += dataRow('Trade Receivables (Debtors)', c.deb, fmtIN, 'debtors', 'bs_assets');
+  html += dataRow('Inventories', c.inv, fmtIN, 'inventories', 'bs_assets');
+  html += dataRow('Cash & Bank', c.cash, fmtIN, 'cash', 'bs_assets');
+  html += dataRow('Other Current Assets', c.stl, fmtIN, 'short_term_loans', 'bs_assets');
+  html += totalRow('Total Current Assets', c.totalCA);
+  html += totalRow('Total Assets', c.totalAssets);
+
+  html += '</tbody></table>';
+  document.getElementById('bsTable').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// P&L TABLE
+// ═══════════════════════════════════════════════════════════════
+function renderPL(c) {
+  const { years } = mergedData;
+  const n = years.length;
+  let html = `<table><thead>${headerRow(years)}</thead><tbody>`;
+
+  html += sectionRow('INCOME', n);
+  html += dataRow('Revenue from Operations', c.rev, fmtIN, 'revenue_from_operations', 'pl');
+  html += dataRow('Other Income', c.otherInc, fmtIN, 'other_income', 'pl');
+  html += totalRow('Total Income', c.totalInc);
+
+  html += sectionRow('EXPENSES', n);
+  html += dataRow('Cost of Goods Sold (COGS)', c.cogs, fmtIN, 'cogs', 'pl');
+  html += dataRow('Employee Expenses', c.emp, fmtIN, 'employee_expenses', 'pl');
+  html += dataRow('Other Expenses', c.otherExp, fmtIN, 'other_expenses', 'pl');
+  html += totalRow('Total Operating Expenses', c.totalExp);
+
+  html += sectionRow('PROFITABILITY', n);
+  html += totalRow('EBITDA', c.ebitda);
+  html += pctRow('EBITDA %', c.ebitdaPct);
+  html += dataRow('Depreciation', c.dep, fmtIN, 'depreciation', 'pl');
+  html += totalRow('EBIT', c.ebit);
+  html += dataRow('Finance Cost', c.finCost, fmtIN, 'finance_cost', 'pl');
+  html += totalRow('PBT', c.pbt);
+  html += pctRow('PBT %', c.pbtPct);
+  html += dataRow('Tax Expense', c.tax, fmtIN, 'tax_expense', 'pl');
+  html += totalRow('PAT (Net Profit)', c.pat);
+  html += pctRow('PAT %', c.patPct);
+
+  html += sectionRow('GROWTH', n);
+  html += `<tr><td>Revenue YoY Growth %</td>${c.revGrowth.map(v => `<td class="${numClass(v)}">${v === null ? '—' : fmtPct(v)}</td>`).join('')}</tr>`;
+  html += `<tr><td>PAT YoY Growth %</td>${c.patGrowth.map(v => `<td class="${numClass(v)}">${v === null ? '—' : fmtPct(v)}</td>`).join('')}</tr>`;
+
+  html += '</tbody></table>';
+  document.getElementById('plTable').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RATIOS TABLE
+// ═══════════════════════════════════════════════════════════════
+function renderRatios(c) {
+  const { years } = mergedData;
+  const n = years.length;
+  let html = `<table><thead>${headerRow(years)}</thead><tbody>`;
+
+  html += sectionRow('LIQUIDITY RATIOS', n);
+  html += `<tr><td>Current Ratio</td>${c.currentRatio.map(v => `<td class="${v >= 1.33 ? 'num-pos' : 'num-neg'}">${fmtRatio(v)}</td>`).join('')}</tr>`;
+  html += `<tr><td>Quick Ratio</td>${c.quickRatio.map(v => `<td class="${v >= 1 ? 'num-pos' : 'num-neg'}">${fmtRatio(v)}</td>`).join('')}</tr>`;
+
+  html += sectionRow('LEVERAGE RATIOS', n);
+  html += `<tr><td>Debt / Equity (D/E)</td>${c.de.map(v => `<td class="${v <= 2 ? 'num-pos' : 'num-neg'}">${fmtRatio(v)}</td>`).join('')}</tr>`;
+  html += `<tr><td>Interest Coverage (ICR)</td>${c.ic.map(v => `<td class="${v >= 2 ? 'num-pos' : 'num-neg'}">${fmtRatio(v)}</td>`).join('')}</tr>`;
+  html += `<tr><td>DSCR</td>${c.dscr.map(v => `<td class="${v >= 1.25 ? 'num-pos' : 'num-neg'}">${fmtRatio(v)}</td>`).join('')}</tr>`;
+
+  html += sectionRow('PROFITABILITY RATIOS', n);
+  html += pctRow('Gross Margin %', c.grossMargin);
+  html += pctRow('EBITDA %', c.ebitdaPct);
+  html += pctRow('PAT %', c.patPctArr);
+
+  html += sectionRow('EFFICIENCY RATIOS', n);
+  html += `<tr><td>Asset Turnover</td>${c.assetTurnover.map(v => `<td>${fmtRatio(v)}</td>`).join('')}</tr>`;
+  html += `<tr><td>Inventory Days</td>${c.invDays.map(v => `<td>${v ? v.toFixed(0) + ' days' : '—'}</td>`).join('')}</tr>`;
+  html += `<tr><td>Debtor Days</td>${c.debDays.map(v => `<td>${v ? v.toFixed(0) + ' days' : '—'}</td>`).join('')}</tr>`;
+  html += `<tr><td>Creditor Days</td>${c.credDays.map(v => `<td>${v ? v.toFixed(0) + ' days' : '—'}</td>`).join('')}</tr>`;
+
+  html += '</tbody></table>';
+  document.getElementById('ratiosTable').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VERTICAL ANALYSIS
+// ═══════════════════════════════════════════════════════════════
+function renderVertical(c) {
+  const { years } = mergedData;
+  const n = years.length;
+  const pct = (arr) => arr.map((v, i) => c.rev[i] ? v / c.rev[i] * 100 : 0);
+
+  let html = `<table><thead>${headerRow(years)}</thead><tbody>`;
+  html += sectionRow('P&L AS % OF REVENUE FROM OPERATIONS', n);
+  html += pctRow('Revenue from Operations', c.rev.map(() => 100));
+  html += pctRow('Other Income', pct(c.otherInc));
+  html += pctRow('Total Income', pct(c.totalInc));
+  html += pctRow('COGS', pct(c.cogs));
+  html += pctRow('Employee Expenses', pct(c.emp));
+  html += pctRow('Other Expenses', pct(c.otherExp));
+  html += pctRow('Total Operating Expenses', pct(c.totalExp));
+  html += pctRow('EBITDA', pct(c.ebitda));
+  html += pctRow('Depreciation', pct(c.dep));
+  html += pctRow('EBIT', pct(c.ebit));
+  html += pctRow('Finance Cost', pct(c.finCost));
+  html += pctRow('PBT', pct(c.pbt));
+  html += pctRow('Tax', pct(c.tax));
+  html += pctRow('PAT', pct(c.pat));
+  html += '</tbody></table>';
+  document.getElementById('verticalTable').innerHTML = html;
+}
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// TREND ANALYSIS
+// ═══════════════════════════════════════════════════════════════
+function renderTrend(c) {
+  const { years } = mergedData;
+  const n = years.length;
+  if (n < 2) {
+    document.getElementById('trendContent').innerHTML = '<div class="text-muted text-sm">Need at least 2 years of data for trend analysis.</div>';
+    return;
+  }
+
+  const last = n - 1;
+  const prev = n - 2;
+  const trends = [];
+
+  const addTrend = (label, cur, prv, unit = '') => {
+    const chg = prv ? (cur - prv) / Math.abs(prv) * 100 : 0;
+    const dir = chg > 2 ? 'up' : chg < -2 ? 'down' : 'flat';
+    const arrow = dir === 'up' ? '↑' : dir === 'down' ? '↓' : '→';
+    const color = dir === 'up' ? 'trend-up' : dir === 'down' ? 'trend-down' : 'trend-flat';
+    trends.push({ label, cur, prv, chg, dir, arrow, color, unit });
+  };
+
+  addTrend('Revenue from Operations', c.rev[last], c.rev[prev], '₹L');
+  addTrend('EBITDA', c.ebitda[last], c.ebitda[prev], '₹L');
+  addTrend('PAT', c.pat[last], c.pat[prev], '₹L');
+  addTrend('Total Debt', c.totalDebt[last], c.totalDebt[prev], '₹L');
+  addTrend('Net Worth', c.netWorth[last], c.netWorth[prev], '₹L');
+  addTrend('Current Ratio', c.currentRatio[last], c.currentRatio[prev], 'x');
+  addTrend('D/E Ratio', c.de[last], c.de[prev], 'x');
+  addTrend('EBITDA %', c.ebitdaPct[last], c.ebitdaPct[prev], '%');
+
+  let html = '';
+  for (const t of trends) {
+    html += `<div class="trend-item">
+      <span class="trend-arrow ${t.color}">${t.arrow}</span>
+      <div style="flex:1">
+        <div style="font-weight:500">${t.label}</div>
+        <div class="text-sm text-muted">
+          FY${years[prev]}: ${t.unit === '%' ? t.prv.toFixed(1) + '%' : t.unit === 'x' ? t.prv.toFixed(2) + 'x' : fmtIN(t.prv)}
+          → FY${years[last]}: ${t.unit === '%' ? t.cur.toFixed(1) + '%' : t.unit === 'x' ? t.cur.toFixed(2) + 'x' : fmtIN(t.cur)}
+        </div>
+      </div>
+      <div class="${t.color}" style="font-weight:600;font-size:13px">${t.chg >= 0 ? '+' : ''}${t.chg.toFixed(1)}%</div>
+    </div>`;
+  }
+  document.getElementById('trendContent').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FLAGS
+// ═══════════════════════════════════════════════════════════════
+function renderFlags(c) {
+  const { years } = mergedData;
+  const n = years.length;
+  const flags = [];
+
+  // Check for negative net worth
+  c.netWorth.forEach((v, i) => { if (v < 0) flags.push({ type: 'error', msg: `Negative Net Worth in FY${years[i]}: ${fmtIN(v)} Lakhs` }); });
+  // Check for negative PAT
+  c.pat.forEach((v, i) => { if (v < 0) flags.push({ type: 'warn', msg: `Net Loss in FY${years[i]}: ${fmtIN(v)} Lakhs` }); });
+  // Low current ratio
+  c.currentRatio.forEach((v, i) => { if (v > 0 && v < 1) flags.push({ type: 'warn', msg: `Current Ratio below 1.0 in FY${years[i]}: ${v.toFixed(2)}x` }); });
+  // High D/E
+  c.de.forEach((v, i) => { if (v > 3) flags.push({ type: 'warn', msg: `High D/E Ratio in FY${years[i]}: ${v.toFixed(2)}x` }); });
+  // Low ICR
+  c.ic.forEach((v, i) => { if (v > 0 && v < 1.5) flags.push({ type: 'error', msg: `Low Interest Coverage in FY${years[i]}: ${v.toFixed(2)}x` }); });
+  // Revenue decline
+  for (let i = 1; i < n; i++) {
+    if (c.rev[i] < c.rev[i - 1] * 0.9) flags.push({ type: 'warn', msg: `Revenue declined >10% from FY${years[i-1]} to FY${years[i]}` });
+  }
+  // Missing data
+  const plKeys = ['revenue_from_operations','cogs','pat'];
+  for (const k of plKeys) {
+    if (!mergedData.pl[k] || mergedData.pl[k].every(v => !v)) {
+      flags.push({ type: 'info', msg: `Missing data for: ${k.replace(/_/g, ' ')}` });
+    }
+  }
+  // BS mismatch
+  c.totalAssets.forEach((v, i) => {
+    const diff = Math.abs(v - c.totalLiab[i]);
+    if (v > 0 && diff / v > 0.05) flags.push({ type: 'warn', msg: `Balance Sheet mismatch in FY${years[i]}: Assets ${fmtIN(v)} vs Liabilities ${fmtIN(c.totalLiab[i])}` });
+  });
+
+  if (!flags.length) {
+    document.getElementById('flagsContent').innerHTML = '<div class="alert alert-success">✅ No data quality issues detected.</div>';
+    return;
+  }
+
+  let html = '';
+  for (const f of flags) {
+    const icon = f.type === 'error' ? '🔴' : f.type === 'warn' ? '🟡' : 'ℹ️';
+    html += `<div class="flag ${f.type}">${icon} ${f.msg}</div>`;
+  }
+  document.getElementById('flagsContent').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CAM NARRATIVE
+// ═══════════════════════════════════════════════════════════════
+function renderNarrative(c) {
+  const { years } = mergedData;
+  const n = years.length;
+  const last = n - 1;
+  const company = document.getElementById('companyName').value || mergedData.company || 'the company';
+  const facilityType = document.getElementById('facilityType').value || 'the proposed facility';
+  const facilityAmt = document.getElementById('facilityAmount').value;
+  const natureBiz = document.getElementById('natureBiz').value || 'its business operations';
+
+  const latestRev = c.rev[last];
+  const latestPAT = c.pat[last];
+  const latestEBITDA = c.ebitda[last];
+  const latestDE = c.de[last];
+  const latestCR = c.currentRatio[last];
+  const latestICR = c.ic[last];
+  const latestDSCR = c.dscr[last];
+
+  const revGrowthAvg = c.revGrowth.filter(v => v !== null).reduce((a, b) => a + b, 0) / (c.revGrowth.filter(v => v !== null).length || 1);
+  const patGrowthAvg = c.patGrowth.filter(v => v !== null).reduce((a, b) => a + b, 0) / (c.patGrowth.filter(v => v !== null).length || 1);
+
+  const recommend = () => {
+    let score = 0;
+    if (latestCR >= 1.33) score++;
+    if (latestDE <= 2) score++;
+    if (latestICR >= 2) score++;
+    if (latestDSCR >= 1.25) score++;
+    if (latestPAT > 0) score++;
+    if (revGrowthAvg > 5) score++;
+    if (score >= 5) return { label: 'APPROVE', color: 'var(--green)', reason: 'The company demonstrates strong financial health with adequate debt service capacity.' };
+    if (score >= 3) return { label: 'CONDITIONAL APPROVAL', color: 'var(--yellow)', reason: 'The proposal may be considered subject to satisfactory compliance with conditions.' };
+    return { label: 'DECLINE / FURTHER REVIEW', color: 'var(--red)', reason: 'The financial profile raises concerns that require further due diligence.' };
+  };
+
+  const rec = recommend();
+
+  const blocks = [
+    {
+      title: '1. Business Overview',
+      text: `${company} is engaged in ${natureBiz}. The company has been operating for ${getAge()} and has demonstrated ${revGrowthAvg > 0 ? 'consistent revenue growth' : 'revenue challenges'} over the review period FY${years[0]}–FY${years[last]}. The latest audited financials for FY${years[last]} reflect total revenue from operations of ₹${fmtIN(latestRev)} Lakhs.`
+    },
+    {
+      title: '2. Financial Performance Summary',
+      text: `Over the ${n}-year review period, the company's revenue grew at an average rate of ${revGrowthAvg.toFixed(1)}% per annum. EBITDA for FY${years[last]} stood at ₹${fmtIN(latestEBITDA)} Lakhs (${c.ebitdaPct[last].toFixed(1)}% margin). Net profit (PAT) for FY${years[last]} was ₹${fmtIN(latestPAT)} Lakhs, representing a PAT margin of ${c.patPct[last].toFixed(1)}%. Average PAT growth over the period was ${patGrowthAvg.toFixed(1)}%.`
+    },
+    {
+      title: '3. Liquidity & Leverage Assessment',
+      text: `The company's current ratio as of FY${years[last]} is ${latestCR.toFixed(2)}x (benchmark: ≥1.33x), indicating ${latestCR >= 1.33 ? 'adequate' : 'below-benchmark'} short-term liquidity. The Debt-to-Equity ratio stands at ${latestDE.toFixed(2)}x, reflecting ${latestDE <= 2 ? 'a comfortable leverage position' : 'elevated leverage that warrants monitoring'}. Interest Coverage Ratio (ICR) of ${latestICR.toFixed(2)}x ${latestICR >= 2 ? 'comfortably covers' : 'is below the benchmark for'} debt servicing obligations. DSCR of ${latestDSCR.toFixed(2)}x ${latestDSCR >= 1.25 ? 'indicates adequate repayment capacity' : 'suggests potential stress in debt repayment'}.`
+    },
+    {
+      title: '4. Strengths',
+      text: buildStrengths(c, years, last, revGrowthAvg)
+    },
+    {
+      title: '5. Concerns & Risk Factors',
+      text: buildConcerns(c, years, last)
+    },
+    {
+      title: '6. Proposed Facility',
+      text: `The company has requested ${facilityType}${facilityAmt ? ' of ₹' + facilityAmt + ' Lakhs' : ''} for ${document.getElementById('facilityPurpose').value || 'business purposes'}. Primary security: ${document.getElementById('primarySecurity').value || 'to be confirmed'}. Collateral: ${document.getElementById('collateralSecurity').value || 'to be confirmed'}. Repayment: ${document.getElementById('repaymentSchedule').value || 'as per sanction terms'}.`
+    },
+    {
+      title: '7. Recommendation',
+      text: `<strong style="color:${rec.color};font-size:15px">${rec.label}</strong><br><br>${rec.reason} The credit team recommends ${rec.label.toLowerCase()} of the proposed ${facilityType}${facilityAmt ? ' of ₹' + facilityAmt + ' Lakhs' : ''} to ${company}, subject to standard documentation and compliance requirements.`
+    }
+  ];
+
+  let html = '';
+  for (const b of blocks) {
+    html += `<div class="narrative-block"><h4>${b.title}</h4><p>${b.text}</p></div>`;
+  }
+  document.getElementById('narrativeContent').innerHTML = html;
+}
+
+function getAge() {
+  const d = document.getElementById('incDate').value;
+  if (!d) return 'several years';
+  const years = Math.floor((Date.now() - new Date(d)) / (365.25 * 24 * 3600 * 1000));
+  return `${years} year${years !== 1 ? 's' : ''}`;
+}
+
+function buildStrengths(c, years, last, revGrowthAvg) {
+  const pts = [];
+  if (revGrowthAvg > 10) pts.push(`Strong revenue growth averaging ${revGrowthAvg.toFixed(1)}% p.a. over the review period`);
+  if (c.ebitdaPct[last] > 15) pts.push(`Healthy EBITDA margin of ${c.ebitdaPct[last].toFixed(1)}% in FY${years[last]}`);
+  if (c.currentRatio[last] >= 1.33) pts.push(`Adequate liquidity with current ratio of ${c.currentRatio[last].toFixed(2)}x`);
+  if (c.de[last] <= 1.5) pts.push(`Conservative leverage with D/E of ${c.de[last].toFixed(2)}x`);
+  if (c.ic[last] >= 3) pts.push(`Strong interest coverage of ${c.ic[last].toFixed(2)}x`);
+  if (c.pat[last] > 0) pts.push(`Consistent profitability with positive PAT of ₹${fmtIN(c.pat[last])} Lakhs`);
+  if (c.netWorth[last] > 0) pts.push(`Positive net worth of ₹${fmtIN(c.netWorth[last])} Lakhs`);
+  return pts.length ? pts.map(p => `• ${p}`).join('<br>') : '• Established business with operational track record.';
+}
+
+function buildConcerns(c, years, last) {
+  const pts = [];
+  if (c.de[last] > 2) pts.push(`Elevated D/E ratio of ${c.de[last].toFixed(2)}x may constrain future borrowing capacity`);
+  if (c.currentRatio[last] < 1.33 && c.currentRatio[last] > 0) pts.push(`Current ratio of ${c.currentRatio[last].toFixed(2)}x is below the benchmark of 1.33x`);
+  if (c.ic[last] < 2 && c.ic[last] > 0) pts.push(`Interest coverage of ${c.ic[last].toFixed(2)}x is below the comfort threshold of 2.0x`);
+  if (c.pat[last] < 0) pts.push(`Net loss of ₹${fmtIN(Math.abs(c.pat[last]))} Lakhs in FY${years[last]} raises profitability concerns`);
+  if (c.debDays[last] > 90) pts.push(`High debtor days of ${c.debDays[last].toFixed(0)} days indicates potential collection issues`);
+  if (c.invDays[last] > 120) pts.push(`Inventory days of ${c.invDays[last].toFixed(0)} days suggests slow-moving stock`);
+  return pts.length ? pts.map(p => `• ${p}`).join('<br>') : '• No significant concerns identified based on available data. Standard monitoring recommended.';
+}
+
+function regenerateNarrative() {
+  if (mergedData) {
+    const c = computeFinancials(mergedData);
+    renderNarrative(c);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXTRACTION SUMMARY
+// ═══════════════════════════════════════════════════════════════
+function showExtractionSummary() {
+  const el = document.getElementById('extractedSummary');
+  const content = document.getElementById('extractedContent');
+  el.style.display = '';
+  const { years, company } = mergedData;
+  content.innerHTML = `
+    <div class="alert alert-success">✅ Successfully extracted data for <strong>${company || 'company'}</strong> — ${years.length} year(s): FY${years.join(', FY')}</div>
+    <div class="flex" style="gap:10px;flex-wrap:wrap;margin-top:12px">
+      <button class="btn btn-primary" onclick="switchTab('financials')">📊 View Financial Analysis →</button>
+      <button class="btn btn-outline" onclick="switchTab('ratios')">📐 View Ratios →</button>
+      <button class="btn btn-outline" onclick="switchTab('narrative')">📝 View CAM Narrative →</button>
+    </div>
+  `;
+}
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DIRECTORS TABLE
+// ═══════════════════════════════════════════════════════════════
+function addDirectorRow() {
+  directorRows++;
+  const tbody = document.getElementById('directorsBody');
+  const tr = document.createElement('tr');
+  tr.id = 'dir-' + directorRows;
+  tr.innerHTML = `
+    <td style="color:var(--muted);font-size:12px">${directorRows}</td>
+    <td><input type="text" placeholder="Full Name"></td>
+    <td><input type="text" placeholder="DIN / PAN"></td>
+    <td><input type="text" placeholder="Director / Partner / Promoter"></td>
+    <td><input type="number" placeholder="0.00" step="0.01" min="0" max="100"></td>
+    <td><button class="btn btn-danger" style="padding:3px 8px;font-size:11px" onclick="removeDirectorRow(${directorRows})">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function removeDirectorRow(id) {
+  const el = document.getElementById('dir-' + id);
+  if (el) el.remove();
+}
+
+// Init with 2 rows
+addDirectorRow();
+addDirectorRow();
+
+// ═══════════════════════════════════════════════════════════════
+// EXCEL EXPORT
+// ═══════════════════════════════════════════════════════════════
+function generateExcel() {
+  if (!mergedData) {
+    alert('Please extract financials first before generating the CAM Excel.');
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+  const c = computeFinancials(mergedData);
+  const { years } = mergedData;
+  const company = document.getElementById('companyName').value || mergedData.company || 'Company';
+
+  // ── SHEET 1: COVER ──
+  const coverData = [
+    ['CAM BUILDER PRO — CREDIT APPRAISAL MEMORANDUM', '', '', ''],
+    ['Generated on:', new Date().toLocaleDateString('en-IN'), '', ''],
+    ['', '', '', ''],
+    ['COMPANY PROFILE', '', '', ''],
+    ['Company Name', document.getElementById('companyName').value || ''],
+    ['CIN', document.getElementById('cin').value || ''],
+    ['Incorporation Date', document.getElementById('incDate').value || ''],
+    ['Nature of Business', document.getElementById('natureBiz').value || ''],
+    ['Registered Address', document.getElementById('regAddress').value || ''],
+    ['Auditor', document.getElementById('auditorName').value || ''],
+    ['', '', '', ''],
+    ['PROPOSED FACILITY', '', '', ''],
+    ['Facility Type', document.getElementById('facilityType').value || ''],
+    ['Amount (₹ Lakhs)', document.getElementById('facilityAmount').value || ''],
+    ['Tenure (Months)', document.getElementById('facilityTenure').value || ''],
+    ['Interest Rate (%)', document.getElementById('facilityRate').value || ''],
+    ['Purpose', document.getElementById('facilityPurpose').value || ''],
+    ['Primary Security', document.getElementById('primarySecurity').value || ''],
+    ['Collateral Security', document.getElementById('collateralSecurity').value || ''],
+    ['Repayment Schedule', document.getElementById('repaymentSchedule').value || ''],
+    ['', '', '', ''],
+    ['DIRECTORS / PARTNERS', '', '', ''],
+    ['Name', 'DIN/PAN', 'Designation', '% Shareholding'],
+  ];
+  document.querySelectorAll('#directorsBody tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    if (inputs.length >= 4) {
+      coverData.push([inputs[0].value, inputs[1].value, inputs[2].value, inputs[3].value]);
+    }
+  });
+  const wsCover = XLSX.utils.aoa_to_sheet(coverData);
+  wsCover['!cols'] = [{ wch: 30 }, { wch: 40 }, { wch: 20 }, { wch: 20 }];
+  XLSX.utils.book_append_sheet(wb, wsCover, 'Cover');
+
+  // ── SHEET 2: P&L ──
+  const plHeader = ['Particulars', ...years.map(y => 'FY ' + y)];
+  const plRows = [
+    plHeader,
+    ['INCOME'],
+    ['Revenue from Operations', ...c.rev],
+    ['Other Income', ...c.otherInc],
+    ['Total Income', ...c.totalInc],
+    ['EXPENSES'],
+    ['COGS', ...c.cogs],
+    ['Employee Expenses', ...c.emp],
+    ['Other Expenses', ...c.otherExp],
+    ['Total Operating Expenses', ...c.totalExp],
+    ['PROFITABILITY'],
+    ['EBITDA', ...c.ebitda],
+    ['EBITDA %', ...c.ebitdaPct.map(v => v / 100)],
+    ['Depreciation', ...c.dep],
+    ['EBIT', ...c.ebit],
+    ['Finance Cost', ...c.finCost],
+    ['PBT', ...c.pbt],
+    ['PBT %', ...c.pbtPct.map(v => v / 100)],
+    ['Tax Expense', ...c.tax],
+    ['PAT', ...c.pat],
+    ['PAT %', ...c.patPct.map(v => v / 100)],
+    ['GROWTH'],
+    ['Revenue YoY Growth %', ...c.revGrowth.map(v => v === null ? '' : v / 100)],
+    ['PAT YoY Growth %', ...c.patGrowth.map(v => v === null ? '' : v / 100)],
+  ];
+  const wsPL = XLSX.utils.aoa_to_sheet(plRows);
+  wsPL['!cols'] = [{ wch: 35 }, ...years.map(() => ({ wch: 18 }))];
+  XLSX.utils.book_append_sheet(wb, wsPL, 'P&L');
+
+  // ── SHEET 3: BALANCE SHEET ──
+  const bsHeader = ['Particulars', ...years.map(y => 'FY ' + y)];
+  const bsRows = [
+    bsHeader,
+    ['EQUITY & LIABILITIES'],
+    ['Share Capital', ...c.sc],
+    ['Reserves & Surplus', ...c.res],
+    ['Total Net Worth', ...c.netWorth],
+    ['Long Term Borrowings', ...c.ltb],
+    ['Short Term Borrowings', ...c.stb],
+    ['Total Debt', ...c.totalDebt],
+    ['Trade Payables', ...c.tp],
+    ['Other Current Liabilities', ...c.ocl],
+    ['Total Liabilities', ...c.totalLiab],
+    ['ASSETS'],
+    ['Tangible Fixed Assets', ...c.ta],
+    ['Intangible Assets', ...c.ia],
+    ['Capital WIP', ...c.cwip],
+    ['Trade Receivables', ...c.deb],
+    ['Inventories', ...c.inv],
+    ['Cash & Bank', ...c.cash],
+    ['Other Current Assets', ...c.stl],
+    ['Total Current Assets', ...c.totalCA],
+    ['Total Assets', ...c.totalAssets],
+  ];
+  const wsBS = XLSX.utils.aoa_to_sheet(bsRows);
+  wsBS['!cols'] = [{ wch: 35 }, ...years.map(() => ({ wch: 18 }))];
+  XLSX.utils.book_append_sheet(wb, wsBS, 'Balance Sheet');
+
+  // ── SHEET 4: RATIOS ──
+  const ratioHeader = ['Ratio', ...years.map(y => 'FY ' + y)];
+  const ratioRows = [
+    ratioHeader,
+    ['LIQUIDITY'],
+    ['Current Ratio', ...c.currentRatio],
+    ['Quick Ratio', ...c.quickRatio],
+    ['LEVERAGE'],
+    ['Debt / Equity (D/E)', ...c.de],
+    ['Interest Coverage (ICR)', ...c.ic],
+    ['DSCR', ...c.dscr],
+    ['PROFITABILITY'],
+    ['Gross Margin %', ...c.grossMargin.map(v => v / 100)],
+    ['EBITDA %', ...c.ebitdaPct.map(v => v / 100)],
+    ['PAT %', ...c.patPct.map(v => v / 100)],
+    ['EFFICIENCY'],
+    ['Asset Turnover', ...c.assetTurnover],
+    ['Inventory Days', ...c.invDays],
+    ['Debtor Days', ...c.debDays],
+    ['Creditor Days', ...c.credDays],
+  ];
+  const wsRatios = XLSX.utils.aoa_to_sheet(ratioRows);
+  wsRatios['!cols'] = [{ wch: 30 }, ...years.map(() => ({ wch: 18 }))];
+  XLSX.utils.book_append_sheet(wb, wsRatios, 'Ratios');
+
+  // ── SHEET 5: VERTICAL ANALYSIS ──
+  const pct = (arr) => arr.map((v, i) => c.rev[i] ? v / c.rev[i] : 0);
+  const vaHeader = ['Particulars (% of Revenue)', ...years.map(y => 'FY ' + y)];
+  const vaRows = [
+    vaHeader,
+    ['Revenue from Operations', ...c.rev.map(() => 1)],
+    ['Other Income', ...pct(c.otherInc)],
+    ['Total Income', ...pct(c.totalInc)],
+    ['COGS', ...pct(c.cogs)],
+    ['Employee Expenses', ...pct(c.emp)],
+    ['Other Expenses', ...pct(c.otherExp)],
+    ['Total Operating Expenses', ...pct(c.totalExp)],
+    ['EBITDA', ...pct(c.ebitda)],
+    ['Depreciation', ...pct(c.dep)],
+    ['EBIT', ...pct(c.ebit)],
+    ['Finance Cost', ...pct(c.finCost)],
+    ['PBT', ...pct(c.pbt)],
+    ['Tax', ...pct(c.tax)],
+    ['PAT', ...pct(c.pat)],
+  ];
+  const wsVA = XLSX.utils.aoa_to_sheet(vaRows);
+  wsVA['!cols'] = [{ wch: 35 }, ...years.map(() => ({ wch: 18 }))];
+  XLSX.utils.book_append_sheet(wb, wsVA, 'Vertical Analysis');
+
+  // ── SHEET 6: CAM NARRATIVE ──
+  const narrativeBlocks = document.querySelectorAll('.narrative-block');
+  const narRows = [['CAM NARRATIVE — ' + company], ['']];
+  narrativeBlocks.forEach(b => {
+    const title = b.querySelector('h4')?.textContent || '';
+    const text = b.querySelector('p')?.textContent || '';
+    narRows.push([title]);
+    narRows.push([text]);
+    narRows.push(['']);
+  });
+  const wsNar = XLSX.utils.aoa_to_sheet(narRows);
+  wsNar['!cols'] = [{ wch: 120 }];
+  XLSX.utils.book_append_sheet(wb, wsNar, 'CAM Narrative');
+
+  // ── SHEET 7: FLAGS ──
+  const flagEls = document.querySelectorAll('#flagsContent .flag');
+  const flagRows = [['Type', 'Description']];
+  flagEls.forEach(f => {
+    const type = f.classList.contains('error') ? 'ERROR' : f.classList.contains('warn') ? 'WARNING' : 'INFO';
+    flagRows.push([type, f.textContent.trim()]);
+  });
+  if (flagRows.length === 1) flagRows.push(['INFO', 'No data quality issues detected.']);
+  const wsFlags = XLSX.utils.aoa_to_sheet(flagRows);
+  wsFlags['!cols'] = [{ wch: 12 }, { wch: 80 }];
+  XLSX.utils.book_append_sheet(wb, wsFlags, 'Flags');
+
+  // ── DOWNLOAD ──
+  const filename = `CAM_${company.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  XLSX.writeFile(wb, filename);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DEMO DATA (for testing without server)
+// ═══════════════════════════════════════════════════════════════
+function loadDemoData() {
+  extractedData = [
+    {
+      year: 2022, company: 'Demo Industries Pvt Ltd',
+      pl: { revenue_from_operations: [8500], other_income: [120], cogs: [4200], employee_expenses: [1200], other_expenses: [800], finance_cost: [350], depreciation: [280], tax_expense: [180], pat: [510] },
+      bs_assets: { tangible_assets: [3200], cwip: [200], intangible_assets: [100], inventories: [1800], debtors: [2100], cash: [450], short_term_loans: [300] },
+      bs_liabilities: { equity_share_capital: [500], reserves_surplus: [2800], long_term_borrowings: [2000], short_term_borrowings: [800], trade_payables: [1200], other_current_liabilities: [600] }
+    },
+    {
+      year: 2023, company: 'Demo Industries Pvt Ltd',
+      pl: { revenue_from_operations: [9800], other_income: [150], cogs: [4700], employee_expenses: [1400], other_expenses: [900], finance_cost: [380], depreciation: [310], tax_expense: [220], pat: [640] },
+      bs_assets: { tangible_assets: [3500], cwip: [150], intangible_assets: [90], inventories: [2000], debtors: [2400], cash: [520], short_term_loans: [350] },
+      bs_liabilities: { equity_share_capital: [500], reserves_surplus: [3300], long_term_borrowings: [1800], short_term_borrowings: [900], trade_payables: [1400], other_current_liabilities: [700] }
+    },
+    {
+      year: 2024, company: 'Demo Industries Pvt Ltd',
+      pl: { revenue_from_operations: [11500], other_income: [180], cogs: [5400], employee_expenses: [1650], other_expenses: [1050], finance_cost: [420], depreciation: [340], tax_expense: [270], pat: [770] },
+      bs_assets: { tangible_assets: [3800], cwip: [300], intangible_assets: [80], inventories: [2300], debtors: [2800], cash: [600], short_term_loans: [400] },
+      bs_liabilities: { equity_share_capital: [500], reserves_surplus: [3950], long_term_borrowings: [1600], short_term_borrowings: [1000], trade_payables: [1600], other_current_liabilities: [800] }
+    }
+  ];
+  mergedData = mergeExtractedData(extractedData);
+  renderAll();
+  showExtractionSummary();
+  document.getElementById('uploadStatus').textContent = 'Demo data loaded (3 years)';
+  document.getElementById('extractBtn').disabled = false;
+}
+</script>
+
+<!-- Demo data button in upload section -->
+<script>
+// Add demo button after DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  const statusDiv = document.getElementById('uploadStatus');
+  if (statusDiv) {
+    const demoBtn = document.createElement('button');
+    demoBtn.className = 'btn btn-outline';
+    demoBtn.style.fontSize = '12px';
+    demoBtn.style.padding = '5px 12px';
+    demoBtn.textContent = '🎯 Load Demo Data';
+    demoBtn.onclick = loadDemoData;
+    statusDiv.parentElement.insertBefore(demoBtn, statusDiv.nextSibling);
+  }
+});
+</script>
+
+
+</body>
+</html>
